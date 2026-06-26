@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Profitabilitas Segmen 3 – YTD 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #4f8ef7;
+    --accent2: #f7a24f;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #1a1d27 0%, #12162b 100%); border-bottom: 1px solid var(--border); padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left h1 { font-size: 1.3rem; font-weight: 700; color: #fff; letter-spacing: -.3px; }
+  .header-left p { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+  .header-badge { background: rgba(79,142,247,.15); border: 1px solid rgba(79,142,247,.3); color: var(--accent); border-radius: 20px; padding: 5px 14px; font-size: .75rem; font-weight: 600; }
+
+  /* LAYOUT */
+  .main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+
+  /* FILTER */
+  .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .filter-bar label { font-size: .8rem; color: var(--muted); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+  .filter-bar select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 12px; font-size: .85rem; outline: none; cursor: pointer; min-width: 220px; }
+  .filter-bar select:focus { border-color: var(--accent); }
+  .filter-info { margin-left: auto; font-size: .78rem; color: var(--muted); }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.blue::before { background: linear-gradient(90deg, #4f8ef7, #818cf8); }
+  .kpi-card.orange::before { background: linear-gradient(90deg, #f7a24f, #fb923c); }
+  .kpi-card.green::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .kpi-card.purple::before { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+  .kpi-label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 10px; }
+  .kpi-value { font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 8px; }
+  .kpi-sub { display: flex; gap: 12px; flex-wrap: wrap; }
+  .kpi-sub-item { font-size: .72rem; color: var(--muted); }
+  .kpi-sub-item span { font-weight: 700; }
+  .kpi-sub-item .sap { color: var(--accent); }
+  .kpi-sub-item .ops { color: var(--accent2); }
+  .kpi-gap-badge { position: absolute; top: 18px; right: 16px; font-size: .7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+  .kpi-gap-badge.pos { background: rgba(34,197,94,.15); color: var(--green); }
+  .kpi-gap-badge.neg { background: rgba(239,68,68,.15); color: var(--red); }
+
+  /* CHARTS GRID */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title { font-size: .9rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .chart-subtitle { font-size: .75rem; color: var(--muted); margin-bottom: 16px; }
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  canvas { width: 100% !important; }
+
+  /* OVERVIEW TABS */
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-size: .78rem; cursor: pointer; transition: all .2s; }
+  .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* TABLE */
+  .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .search-box { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 7px 12px; font-size: .83rem; outline: none; width: 220px; }
+  .search-box:focus { border-color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 900px; }
+  th { background: var(--surface2); color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; padding: 10px 12px; text-align: right; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 1px solid var(--border); }
+  th:first-child { text-align: left; }
+  th:hover { color: var(--text); }
+  th .sort-icon { margin-left: 4px; opacity: .5; }
+  th.sorted { color: var(--accent); }
+  th.sorted .sort-icon { opacity: 1; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(46,51,71,.5); text-align: right; white-space: nowrap; }
+  td:first-child { text-align: left; font-weight: 600; color: #fff; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .7rem; font-weight: 700; }
+  .badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge-red { background: rgba(239,68,68,.15); color: var(--red); }
+  .badge-yellow { background: rgba(245,158,11,.15); color: var(--yellow); }
+  .badge-gray { background: rgba(148,163,184,.1); color: var(--muted); }
+  .num-pos { color: var(--green); }
+  .num-neg { color: var(--red); }
+  .num-neu { color: var(--muted); }
+
+  /* INSIGHT */
+  .insight-section { margin-bottom: 24px; }
+  .section-title { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .insight-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  .insight-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .insight-icon { font-size: 1.4rem; margin-bottom: 8px; }
+  .insight-num { font-size: .72rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .insight-title { font-size: .85rem; font-weight: 700; color: #fff; margin-bottom: 6px; line-height: 1.3; }
+  .insight-text { font-size: .75rem; color: var(--muted); line-height: 1.6; }
+
+  /* RECOMMENDATION */
+  .rec-card { background: linear-gradient(135deg, rgba(79,142,247,.08) 0%, rgba(168,85,247,.08) 100%); border: 1px solid rgba(79,142,247,.2); border-radius: var(--radius); padding: 20px; }
+  .rec-title { font-size: .9rem; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+  .rec-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rec-item { display: flex; gap: 10px; align-items: flex-start; }
+  .rec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+  .rec-text { font-size: .78rem; color: var(--muted); line-height: 1.6; }
+  .rec-text strong { color: var(--text); }
+
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-grid .chart-card.full { grid-column: 1; }
+    .insight-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .insight-grid { grid-template-columns: 1fr; }
+    .rec-list { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>📊 Dashboard Profitabilitas Segmen 3</h1>
+    <p>Rekap YTD Januari – Mei 2026 | Komparasi SAP vs OPS</p>
+  </div>
+  <div class="header-badge">YTD 2026</div>
+</div>
+
+<div class="main">
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <label>Filter Layanan</label>
+    <select id="filterLayanan" onchange="applyFilter()">
+      <option value="ALL">— Semua Layanan —</option>
+    </select>
+    <div class="filter-info" id="filterInfo">Menampilkan 31 dari 31 layanan</div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Pendapatan</div>
+      <div class="kpi-value" id="kpi-pend">Rp 14,56 T</div>
+      <div class="kpi-sub">
+        <div class="kpi-sub-item">SAP: <span class="sap" id="kpi-pend-sap">14,56 T</span></div>
+        <div class="kpi-sub-item">OPS: <span class="ops" id="kpi-pend-ops">14,46 T</span></div>
+      </div>
+      <div class="kpi-gap-badge neg" id="kpi-pend-gap">GAP: –Rp 98 M</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Direct Cost</div>
+      <div class="kpi-value" id="kpi-direct">Rp 8,48 T</div>
+      <div class="kpi-sub">
+        <div class="kpi-sub-item">SAP: <span class="sap" id="kpi-direct-sap">8,48 T</span></div>
+        <div class="kpi-sub-item">OPS: <span class="ops" id="kpi-direct-ops">7,99 T</span></div>
+      </div>
+      <div class="kpi-gap-badge neg" id="kpi-direct-gap">GAP: +Rp 496 M</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Gross Profit</div>
+      <div class="kpi-value" id="kpi-gp">Rp 6,08 T</div>
+      <div class="kpi-sub">
+        <div class="kpi-sub-item">SAP: <span class="sap" id="kpi-gp-sap">6,08 T</span></div>
+        <div class="kpi-sub-item">OPS: <span class="ops" id="kpi-gp-ops">6,47 T</span></div>
+      </div>
+      <div class="kpi-gap-badge pos" id="kpi-gp-gap">GAP: +Rp 398 M</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">GPM</div>
+      <div class="kpi-value" id="kpi-gpm">41.74%</div>
+      <div class="kpi-sub">
+        <div class="kpi-sub-item">SAP: <span class="sap" id="kpi-gpm-sap">41.74%</span></div>
+        <div class="kpi-sub-item">OPS: <span class="ops" id="kpi-gpm-ops">44.37%</span></div>
+      </div>
+      <div class="kpi-gap-badge pos" id="kpi-gpm-gap">GAP: –2.63 pp</div>
+    </div>
+  </div>
+
+  <!-- COMPARISON CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Pendapatan Bulanan</div>
+      <div class="chart-subtitle">SAP vs OPS — Jan hingga Mei 2026 (Rp Miliar)</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>SAP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f7a24f"></div>OPS</div>
+      </div>
+      <canvas id="chartPend" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Direct Cost Bulanan</div>
+      <div class="chart-subtitle">SAP vs OPS — Jan hingga Mei 2026 (Rp Miliar)</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>SAP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f7a24f"></div>OPS</div>
+      </div>
+      <canvas id="chartDirect" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Gross Profit Bulanan</div>
+      <div class="chart-subtitle">SAP vs OPS — Jan hingga Mei 2026 (Rp Miliar)</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>SAP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f7a24f"></div>OPS</div>
+      </div>
+      <canvas id="chartGP" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">GPM Bulanan</div>
+      <div class="chart-subtitle">SAP vs OPS — Jan hingga Mei 2026 (%)</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>SAP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f7a24f"></div>OPS</div>
+      </div>
+      <canvas id="chartGPM" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- OVERVIEW CHART -->
+  <div class="chart-card full" style="margin-bottom:24px">
+    <div class="chart-title">Overview Semua Parameter</div>
+    <div class="chart-subtitle">Tampilan keseluruhan Pendapatan, Direct Cost, Gross Profit &amp; GPM dengan GAP per bulan</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchOverview('pend',this)">Pendapatan</button>
+      <button class="tab-btn" onclick="switchOverview('direct',this)">Direct Cost</button>
+      <button class="tab-btn" onclick="switchOverview('gp',this)">Gross Profit</button>
+      <button class="tab-btn" onclick="switchOverview('gpm',this)">GPM</button>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>SAP</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f7a24f"></div>OPS</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>GAP (SAP – OPS)</div>
+    </div>
+    <canvas id="chartOverview" height="120"></canvas>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <div class="chart-title">Detail per Layanan</div>
+        <div class="chart-subtitle" style="margin-bottom:0">Klik header kolom untuk sort</div>
+      </div>
+      <input class="search-box" id="tableSearch" placeholder="🔍 Cari layanan…" oninput="renderTable()">
+    </div>
+    <div class="table-wrap">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('layanan')" class="sorted" data-col="layanan">Layanan <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('pend_sap')" data-col="pend_sap">Pend SAP <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('pend_ops')" data-col="pend_ops">Pend OPS <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('pend_gap')" data-col="pend_gap">GAP Pend <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('direct_sap')" data-col="direct_sap">Direct SAP <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('direct_ops')" data-col="direct_ops">Direct OPS <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('gp_sap')" data-col="gp_sap">GP SAP <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('gp_ops')" data-col="gp_ops">GP OPS <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('gpm_sap')" data-col="gpm_sap">GPM SAP <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('gpm_ops')" data-col="gpm_ops">GPM OPS <span class="sort-icon">↕</span></th>
+            <th onclick="sortTable('gpm_gap')" data-col="gpm_gap">GAP GPM <span class="sort-icon">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="insight-section">
+    <div class="section-title">💡 Analisis & Insight</div>
+    <div class="insight-grid">
+      <div class="insight-card">
+        <div class="insight-icon">⚠️</div>
+        <div class="insight-num">Insight 1</div>
+        <div class="insight-title">BKPM: GAP Direct Cost Terbesar</div>
+        <div class="insight-text">BKPM mencatat GAP Direct Cost tertinggi sebesar +Rp 244,9 M (SAP lebih tinggi). Indikasi pengakuan biaya jasnaker di SAP belum konsisten dengan data operasional.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">📉</div>
+        <div class="insight-num">Insight 2</div>
+        <div class="insight-title">LKPP: GAP GP Positif Tertinggi</div>
+        <div class="insight-text">LKPP memiliki GAP Gross Profit +Rp 605,4 M dengan SAP lebih tinggi dari OPS. Perbedaan besar pada pengakuan pendapatan (SAP Rp 3,37 T vs OPS Rp 2,76 T) memerlukan rekonsiliasi.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🔴</div>
+        <div class="insight-num">Insight 3</div>
+        <div class="insight-title">KUMKM: Pendapatan Nol di SAP</div>
+        <div class="insight-text">KUMKM tidak mencatat pendapatan apapun di SAP (Rp 0) namun OPS mencatat Rp 44,6 M. Direct Cost SAP tetap berjalan Rp 6 M sehingga GP SAP negatif (–Rp 6 M).</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🚀</div>
+        <div class="insight-num">Insight 4</div>
+        <div class="insight-title">Kemendikti: Pendapatan SAP Lebih Tinggi</div>
+        <div class="insight-text">Kemendikti merupakan layanan terbesar. SAP mencatat pendapatan Rp 2,05 T vs OPS Rp 1,70 T — GAP Rp 348 M. Namun GPM SAP (43,86%) jauh di atas OPS (35,21%), tanda pengakuan berbeda.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🔄</div>
+        <div class="insight-num">Insight 5</div>
+        <div class="insight-title">Kemenhub: GAP Pendapatan Rp 539 M</div>
+        <div class="insight-text">OPS Kemenhub mencatat Rp 791 M vs SAP Rp 251 M. Perbedaan Rp 540 M terjadi karena OPS memasukkan tagihan kontrak penuh sementara SAP hanya mencatat realisasi kas.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">✅</div>
+        <div class="insight-num">Insight 6</div>
+        <div class="insight-title">11 Layanan Tanpa GAP Sama Sekali</div>
+        <div class="insight-text">Al Azhar, KomDig, PT Inggris Prima, UI, Kemendag, Bappenda NTB, Universitas Gunadarma, DPR, dan 3 lainnya memiliki SAP = OPS (GAP = 0). Ini contoh praktik terbaik pencatatan yang perlu direplikasi.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">📊</div>
+        <div class="insight-num">Insight 7</div>
+        <div class="insight-title">GPM OPS Lebih Tinggi Secara Agregat</div>
+        <div class="insight-text">Secara total, GPM OPS (44,37%) lebih tinggi 2,63 poin persentase dari SAP (41,74%). Hal ini mengindikasikan SAP cenderung over-estimate biaya langsung atau under-estimate pendapatan.</div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">⚡</div>
+        <div class="insight-num">Insight 8</div>
+        <div class="insight-title">Volatilitas GPM SAP Bulan Maret Ekstrem</div>
+        <div class="insight-text">GPM SAP pada Maret 2026 turun drastis ke 10,1% (dari 66,4% Feb) sementara GPM OPS stabil di 45,1%. Ini menandakan entry SAP yang tidak merata atau pencatatan massal biaya di bulan tertentu.</div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATION -->
+    <div class="rec-card">
+      <div class="rec-title">🎯 Rekomendasi Harmonisasi Metode Direct Cost & Root Cause Analysis</div>
+      <div class="rec-list">
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Standardisasi Accrual Basis:</strong> Pastikan beban jasnaker, beban mandatory gedung, dan beban jarkom di SAP menggunakan accrual basis yang sama dengan OPS agar tidak terjadi time-lag pencatatan.</div></div>
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Rekonsiliasi Bulanan Wajib:</strong> Implementasikan proses rekonsiliasi wajib antara tim Finance (SAP) dan tim OPS setiap tanggal 5 bulan berikutnya untuk mendeteksi GAP sebelum laporan final.</div></div>
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Root Cause BKPM & LKPP:</strong> Investigasi perbedaan Rp 244,9 M (BKPM) dan Rp 605,4 M (LKPP) — cek apakah perbedaan berasal dari mapping cost center, periode pengakuan, atau invoice timing.</div></div>
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Perbaikan Pencatatan Pendapatan SAP:</strong> Layanan dengan pendapatan SAP = 0 (KUMKM, Undip) harus segera diinput backdate. Buat SOP input pendapatan maksimal H+3 setelah tagihan diterbitkan.</div></div>
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Penyeragaman Basis Pengakuan Kontrak:</strong> OPS menggunakan nilai kontrak penuh (Kemenhub, LPSK), sementara SAP menggunakan realisasi. Tetapkan satu metode: percentage-of-completion atau milestone-based.</div></div>
+        <div class="rec-item"><div class="rec-dot"></div><div class="rec-text"><strong>Replikasi Best Practice:</strong> Adopsi proses pencatatan 11 layanan dengan GAP = 0 sebagai SOP standard. Lakukan knowledge transfer ke layanan dengan GAP besar.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===================== DATA =====================
+const allData = [{"layanan": "Universitas Dipenogero", "pend_sap": 0, "pend_ops": 30375000.0, "pend_gap": -30375000.0, "direct_sap": 0, "direct_ops": 0.0, "direct_gap": 0.0, "gp_sap": 0.0, "gp_ops": 30375000.0, "gp_gap": -30375000.0, "gpm_sap": 0, "gpm_ops": 100.0, "gpm_gap": -100.0}, {"layanan": "Al Azhar Al-Muhajirin", "pend_sap": 59850000.0, "pend_ops": 59850000.0, "pend_gap": 0.0, "direct_sap": 2074882.0, "direct_ops": 2074882.0, "direct_gap": 0.0, "gp_sap": 57775118.0, "gp_ops": 57775118.0, "gp_gap": 0.0, "gpm_sap": 96.53, "gpm_ops": 96.53, "gpm_gap": 0.0}, {"layanan": "Kemendesa", "pend_sap": 88619369.0, "pend_ops": 96250000.0, "pend_gap": -7630631.0, "direct_sap": 7560581.0, "direct_ops": 7560581.0, "direct_gap": 0.0, "gp_sap": 81058788.0, "gp_ops": 88689419.0, "gp_gap": -7630631.0, "gpm_sap": 91.47, "gpm_ops": 92.14, "gpm_gap": -0.68}, {"layanan": "LPSK", "pend_sap": 9295083.0, "pend_ops": 74791666.66666666, "pend_gap": -65496583.66666666, "direct_sap": 7793121.0, "direct_ops": 7793121.0, "direct_gap": 0.0, "gp_sap": 1501962.0, "gp_ops": 66998545.66666666, "gp_gap": -65496583.66666666, "gpm_sap": 16.16, "gpm_ops": 89.58, "gpm_gap": -73.42}, {"layanan": "Kementerian Komunikasi & Digital", "pend_sap": 47500000.0, "pend_ops": 47500000.0, "pend_gap": 0.0, "direct_sap": 5014927.0, "direct_ops": 5014927.0, "direct_gap": 0.0, "gp_sap": 42485073.0, "gp_ops": 42485073.0, "gp_gap": 0.0, "gpm_sap": 89.44, "gpm_ops": 89.44, "gpm_gap": 0.0}, {"layanan": "Direkorat Bea & Cukai", "pend_sap": 61593974.0, "pend_ops": 125125000.0, "pend_gap": -63531026.0, "direct_sap": 13645207.0, "direct_ops": 13645207.0, "direct_gap": 0.0, "gp_sap": 47948767.0, "gp_ops": 111479793.0, "gp_gap": -63531026.0, "gpm_sap": 77.85, "gpm_ops": 89.09, "gpm_gap": -11.25}, {"layanan": "KUMKM", "pend_sap": 0, "pend_ops": 44648650.0, "pend_gap": -44648650.0, "direct_sap": 6000000.0, "direct_ops": 6000000.0, "direct_gap": 0.0, "gp_sap": -6000000.0, "gp_ops": 38648650.0, "gp_gap": -44648650.0, "gpm_sap": 0, "gpm_ops": 86.56, "gpm_gap": -86.56}, {"layanan": "PT Inggris Prima Indonesia", "pend_sap": 52750000.0, "pend_ops": 52750000.0, "pend_gap": 0.0, "direct_sap": 7798084.0, "direct_ops": 7798084.0, "direct_gap": 0.0, "gp_sap": 44951916.0, "gp_ops": 44951916.0, "gp_gap": 0.0, "gpm_sap": 85.22, "gpm_ops": 85.22, "gpm_gap": 0.0}, {"layanan": "ARS University", "pend_sap": 33520435.0, "pend_ops": 20312052.0, "pend_gap": 13208383.0, "direct_sap": 3573821.0, "direct_ops": 3573821.0, "direct_gap": 0.0, "gp_sap": 29946614.0, "gp_ops": 16738231.0, "gp_gap": 13208383.0, "gpm_sap": 89.34, "gpm_ops": 82.41, "gpm_gap": 6.93}, {"layanan": "Kemenhub", "pend_sap": 251445045.0, "pend_ops": 791145045.045045, "pend_gap": -539700000.045045, "direct_sap": 193224346.0, "direct_ops": 166288673.16061, "direct_gap": 26935672.83939001, "gp_sap": 58220699.0, "gp_ops": 624856371.884435, "gp_gap": -566635672.884435, "gpm_sap": 23.15, "gpm_ops": 78.98, "gpm_gap": -55.83}, {"layanan": "BPOM RI", "pend_sap": 61593974.0, "pend_ops": 61761567.0, "pend_gap": -167593.0, "direct_sap": 13645207.0, "direct_ops": 13645207.0, "direct_gap": 0.0, "gp_sap": 47948767.0, "gp_ops": 48116360.0, "gp_gap": -167593.0, "gpm_sap": 77.85, "gpm_ops": 77.91, "gpm_gap": -0.06}, {"layanan": "Direktorat Jenderal Mineral & Batubara", "pend_sap": 495495495.0, "pend_ops": 495495495.0, "pend_gap": 0.0, "direct_sap": 131024579.0, "direct_ops": 122939613.63531202, "direct_gap": 8084965.364687979, "gp_sap": 364470916.0, "gp_ops": 372555881.364688, "gp_gap": -8084965.364687979, "gpm_sap": 73.56, "gpm_ops": 75.19, "gpm_gap": -1.63}, {"layanan": "Universitas Indonesia", "pend_sap": 50000000.0, "pend_ops": 50000000.0, "pend_gap": 0.0, "direct_sap": 12978763.0, "direct_ops": 12978763.0, "direct_gap": 0.0, "gp_sap": 37021237.0, "gp_ops": 37021237.0, "gp_gap": 0.0, "gpm_sap": 74.04, "gpm_ops": 74.04, "gpm_gap": 0.0}, {"layanan": "Kementerian Koperasi", "pend_sap": 440383638.0, "pend_ops": 454927837.5, "pend_gap": -14544199.5, "direct_sap": 134152916.0, "direct_ops": 124290618.46755454, "direct_gap": 9862297.53244546, "gp_sap": 306230722.0, "gp_ops": 330637219.03244543, "gp_gap": -24406497.03244543, "gpm_sap": 69.54, "gpm_ops": 72.68, "gpm_gap": -3.14}, {"layanan": "Kementerian HAM", "pend_sap": 788187500.0, "pend_ops": 788187500.0, "pend_gap": 0.0, "direct_sap": 255106899.0, "direct_ops": 227696237.83075988, "direct_gap": 27410661.169240117, "gp_sap": 533080601.0, "gp_ops": 560491262.1692401, "gp_gap": -27410661.169240117, "gpm_sap": 67.63, "gpm_ops": 71.11, "gpm_gap": -3.48}, {"layanan": "Kementerian Perdagangan", "pend_sap": 59700000.0, "pend_ops": 59700000.0, "pend_gap": 0.0, "direct_sap": 17560538.0, "direct_ops": 17560538.0, "direct_gap": 0.0, "gp_sap": 42139462.0, "gp_ops": 42139462.0, "gp_gap": 0.0, "gpm_sap": 70.59, "gpm_ops": 70.59, "gpm_gap": 0.0}, {"layanan": "BSSN", "pend_sap": 100978750.0, "pend_ops": 71750000.0, "pend_gap": 29228750.0, "direct_sap": 22542062.0, "direct_ops": 22542062.0, "direct_gap": 0.0, "gp_sap": 78436688.0, "gp_ops": 49207938.0, "gp_gap": 29228750.0, "gpm_sap": 77.68, "gpm_ops": 68.58, "gpm_gap": 9.09}, {"layanan": "Bappenda NTB", "pend_sap": 25000000.0, "pend_ops": 25000000.0, "pend_gap": 0.0, "direct_sap": 9862026.0, "direct_ops": 9862026.0, "direct_gap": 0.0, "gp_sap": 15137974.0, "gp_ops": 15137974.0, "gp_gap": 0.0, "gpm_sap": 60.55, "gpm_ops": 60.55, "gpm_gap": 0.0}, {"layanan": "BP Tapera", "pend_sap": 97037371.0, "pend_ops": 108622700.0, "pend_gap": -11585329.0, "direct_sap": 48828285.0, "direct_ops": 48828285.0, "direct_gap": 0.0, "gp_sap": 48209086.0, "gp_ops": 59794415.0, "gp_gap": -11585329.0, "gpm_sap": 49.68, "gpm_ops": 55.05, "gpm_gap": -5.37}, {"layanan": "Universitas Terbuka", "pend_sap": 92611750.0, "pend_ops": 123694665.0, "pend_gap": -31082915.0, "direct_sap": 62130415.0, "direct_ops": 62130415.0, "direct_gap": 0.0, "gp_sap": 30481335.0, "gp_ops": 61564250.0, "gp_gap": -31082915.0, "gpm_sap": 32.91, "gpm_ops": 49.77, "gpm_gap": -16.86}, {"layanan": "Badan Meteorologi dan Geofisika", "pend_sap": 957207206.0, "pend_ops": 957207206.6666667, "pend_gap": -0.6666667461395264, "direct_sap": 529382374.0, "direct_ops": 484048318.0439105, "direct_gap": 45334055.9560895, "gp_sap": 427824832.0, "gp_ops": 473158888.62275624, "gp_gap": -45334056.62275624, "gpm_sap": 44.7, "gpm_ops": 49.43, "gpm_gap": -4.74}, {"layanan": "Universitas Gunadarma", "pend_sap": 35000000.0, "pend_ops": 35000000.0, "pend_gap": 0.0, "direct_sap": 19006985.0, "direct_ops": 19006985.0, "direct_gap": 0.0, "gp_sap": 15993015.0, "gp_ops": 15993015.0, "gp_gap": 0.0, "gpm_sap": 45.69, "gpm_ops": 45.69, "gpm_gap": 0.0}, {"layanan": "Kejagung", "pend_sap": 496330000.0, "pend_ops": 496330000.0, "pend_gap": 0.0, "direct_sap": 310531149.0, "direct_ops": 281023630.95144594, "direct_gap": 29507518.048554063, "gp_sap": 185798851.0, "gp_ops": 215306369.04855406, "gp_gap": -29507518.048554063, "gpm_sap": 37.43, "gpm_ops": 43.38, "gpm_gap": -5.95}, {"layanan": "Dewan Perwakilan Rakyat", "pend_sap": 1045000000.0, "pend_ops": 1045000000.0, "pend_gap": 0.0, "direct_sap": 594144706.0, "direct_ops": 594144706.0, "direct_gap": 0.0, "gp_sap": 450855294.0, "gp_ops": 450855294.0, "gp_gap": 0.0, "gpm_sap": 43.14, "gpm_ops": 43.14, "gpm_gap": 0.0}, {"layanan": "Kemnaker", "pend_sap": 73950000.0, "pend_ops": 74750000.0, "pend_gap": -800000.0, "direct_sap": 45021166.0, "direct_ops": 45021166.0, "direct_gap": 0.0, "gp_sap": 28928834.0, "gp_ops": 29728834.0, "gp_gap": -800000.0, "gpm_sap": 39.12, "gpm_ops": 39.77, "gpm_gap": -0.65}, {"layanan": "Dirjen Pajak", "pend_sap": 882516113.0, "pend_ops": 819984820.0, "pend_gap": 62531293.0, "direct_sap": 516436885.0, "direct_ops": 516436885.0, "direct_gap": 0.0, "gp_sap": 366079228.0, "gp_ops": 303547935.0, "gp_gap": 62531293.0, "gpm_sap": 41.48, "gpm_ops": 37.02, "gpm_gap": 4.46}, {"layanan": "Kemendikti", "pend_sap": 2052138946.0, "pend_ops": 1703951946.0, "pend_gap": 348187000.0, "direct_sap": 1152057805.0, "direct_ops": 1103994647.4316628, "direct_gap": 48063157.5683372, "gp_sap": 900081141.0, "gp_ops": 599957298.5683372, "gp_gap": 300123842.4316628, "gpm_sap": 43.86, "gpm_ops": 35.21, "gpm_gap": 8.65}, {"layanan": "BKPM", "pend_sap": 1979544929.0, "pend_ops": 2145248644.8918917, "pend_gap": -165703715.89189172, "direct_sap": 1699967654.0, "direct_ops": 1455009157.8975093, "direct_gap": 244958496.10249066, "gp_sap": 279577275.0, "gp_ops": 690239486.9943824, "gp_gap": -410662211.9943824, "gpm_sap": 14.12, "gpm_ops": 32.18, "gpm_gap": -18.05}, {"layanan": "LKPP", "pend_sap": 3365577845.0, "pend_ops": 2760171700.0, "pend_gap": 605406145.0, "direct_sap": 1988184115.0, "direct_ops": 1988184115.0, "direct_gap": 0.0, "gp_sap": 1377393730.0, "gp_ops": 771987585.0, "gp_gap": 605406145.0, "gpm_sap": 40.93, "gpm_ops": 27.97, "gpm_gap": 12.96}, {"layanan": "Kementerian Luar Negeri", "pend_sap": 768750000.0, "pend_ops": 768750000.0, "pend_gap": 0.0, "direct_sap": 618256571.0, "direct_ops": 562496164.6094073, "direct_gap": 55760406.390592694, "gp_sap": 150493429.0, "gp_ops": 206253835.3905927, "gp_gap": -55760406.390592694, "gpm_sap": 19.58, "gpm_ops": 26.83, "gpm_gap": -7.25}, {"layanan": "IDP Education", "pend_sap": 86749600.0, "pend_ops": 71885193.0, "pend_gap": 14864407.0, "direct_sap": 54072359.0, "direct_ops": 54072359.0, "direct_gap": 0.0, "gp_sap": 32677241.0, "gp_ops": 17812834.0, "gp_gap": 14864407.0, "gpm_sap": 37.67, "gpm_ops": 24.78, "gpm_gap": 12.89}];
+
+const months = ['Jan','Feb','Mar','Apr','Mei'];
+// Monthly data (Rp Miliar)
+const monthlyRaw = {
+  pend_sap:   [2.37, 3.80, 2.48, 2.88, 3.03],
+  pend_ops:   [2.47, 2.84, 3.40, 3.12, 2.97],
+  direct_sap: [0.76, 1.27, 2.23, 1.59, 2.63],
+  direct_ops: [1.05, 1.27, 1.86, 1.46, 2.34],
+  gp_sap:     [1.62, 2.52, 0.25, 1.29, 0.40],
+  gp_ops:     [1.42, 1.57, 1.53, 1.66, 0.63],
+  gpm_sap:    [68.1, 66.4, 10.1, 44.8, 13.2],
+  gpm_ops:    [57.5, 55.2, 45.1, 53.3, 21.3],
+};
+
+// ===================== FILTER =====================
+let filteredData = [...allData];
+let currentLayanan = 'ALL';
+
+function initFilter() {
+  const sel = document.getElementById('filterLayanan');
+  allData.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.layanan;
+    opt.textContent = d.layanan;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilter() {
+  currentLayanan = document.getElementById('filterLayanan').value;
+  filteredData = currentLayanan === 'ALL' ? [...allData] : allData.filter(d => d.layanan === currentLayanan);
+  updateKPI();
+  renderTable();
+  updateCharts();
+  document.getElementById('filterInfo').textContent = `Menampilkan ${filteredData.length} dari ${allData.length} layanan`;
+}
+
+// ===================== KPI =====================
+function fmt(n, unit='M') {
+  const abs = Math.abs(n);
+  if (unit === 'T') return (n/1e12).toFixed(2) + ' T';
+  if (abs >= 1e12) return (n/1e12).toFixed(2) + ' T';
+  if (abs >= 1e9)  return (n/1e9).toFixed(2) + ' M';
+  if (abs >= 1e6)  return (n/1e6).toFixed(1) + ' Jt';
+  return n.toLocaleString('id-ID');
+}
+
+function updateKPI() {
+  const d = filteredData;
+  const pend_sap = d.reduce((s,r)=>s+r.pend_sap,0);
+  const pend_ops = d.reduce((s,r)=>s+r.pend_ops,0);
+  const direct_sap = d.reduce((s,r)=>s+r.direct_sap,0);
+  const direct_ops = d.reduce((s,r)=>s+r.direct_ops,0);
+  const gp_sap = pend_sap - direct_sap;
+  const gp_ops = pend_ops - direct_ops;
+  const gpm_sap = pend_sap > 0 ? gp_sap/pend_sap*100 : 0;
+  const gpm_ops = pend_ops > 0 ? gp_ops/pend_ops*100 : 0;
+  const gpm_avg = (gpm_sap + gpm_ops) / 2;
+  const pend_gap = pend_sap - pend_ops;
+  const direct_gap = direct_sap - direct_ops;
+  const gp_gap = gp_sap - gp_ops;
+  const gpm_gap = gpm_sap - gpm_ops;
+
+  const pend_main = (pend_sap + pend_ops) / 2;
+  document.getElementById('kpi-pend').textContent = 'Rp ' + fmt(pend_main);
+  document.getElementById('kpi-pend-sap').textContent = fmt(pend_sap);
+  document.getElementById('kpi-pend-ops').textContent = fmt(pend_ops);
+  const pgb = document.getElementById('kpi-pend-gap');
+  pgb.textContent = 'GAP: ' + (pend_gap>=0?'+':'') + 'Rp ' + fmt(Math.abs(pend_gap));
+  pgb.className = 'kpi-gap-badge ' + (pend_gap >= 0 ? 'pos' : 'neg');
+
+  document.getElementById('kpi-direct').textContent = 'Rp ' + fmt((direct_sap+direct_ops)/2);
+  document.getElementById('kpi-direct-sap').textContent = fmt(direct_sap);
+  document.getElementById('kpi-direct-ops').textContent = fmt(direct_ops);
+  const dgb = document.getElementById('kpi-direct-gap');
+  dgb.textContent = 'GAP: ' + (direct_gap>=0?'+':'–') + 'Rp ' + fmt(Math.abs(direct_gap));
+  dgb.className = 'kpi-gap-badge ' + (direct_gap <= 0 ? 'pos' : 'neg');
+
+  document.getElementById('kpi-gp').textContent = 'Rp ' + fmt((gp_sap+gp_ops)/2);
+  document.getElementById('kpi-gp-sap').textContent = fmt(gp_sap);
+  document.getElementById('kpi-gp-ops').textContent = fmt(gp_ops);
+  const ggb = document.getElementById('kpi-gp-gap');
+  ggb.textContent = 'GAP: ' + (gp_gap>=0?'+':'') + 'Rp ' + fmt(Math.abs(gp_gap));
+  ggb.className = 'kpi-gap-badge ' + (gp_gap >= 0 ? 'pos' : 'neg');
+
+  document.getElementById('kpi-gpm').textContent = gpm_avg.toFixed(2) + '%';
+  document.getElementById('kpi-gpm-sap').textContent = gpm_sap.toFixed(2) + '%';
+  document.getElementById('kpi-gpm-ops').textContent = gpm_ops.toFixed(2) + '%';
+  const mgb = document.getElementById('kpi-gpm-gap');
+  mgb.textContent = 'GAP: ' + (gpm_gap>=0?'+':'') + gpm_gap.toFixed(2) + ' pp';
+  mgb.className = 'kpi-gap-badge ' + (gpm_gap >= 0 ? 'pos' : 'neg');
+}
+
+// ===================== CHARTS =====================
+const chartCfg = (sap, ops, label, unit='') => ({
+  type: 'bar',
+  data: {
+    labels: months,
+    datasets: [
+      { label:'SAP', data: sap, backgroundColor:'rgba(79,142,247,0.7)', borderColor:'#4f8ef7', borderWidth:1.5, borderRadius:5 },
+      { label:'OPS', data: ops, backgroundColor:'rgba(247,162,79,0.7)', borderColor:'#f7a24f', borderWidth:1.5, borderRadius:5 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend:{display:false}, tooltip:{callbacks:{label: ctx => ctx.dataset.label+': '+ctx.parsed.y.toFixed(2)+(unit||' M')}} },
+    scales: {
+      x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#94a3b8'} },
+      y: { grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#94a3b8', callback: v => v+(unit||'')} }
+    }
+  }
+});
+
+let charts = {};
+function initCharts() {
+  charts.pend   = new Chart(document.getElementById('chartPend'),   chartCfg(monthlyRaw.pend_sap,   monthlyRaw.pend_ops,   'Pendapatan'));
+  charts.direct = new Chart(document.getElementById('chartDirect'), chartCfg(monthlyRaw.direct_sap, monthlyRaw.direct_ops, 'Direct Cost'));
+  charts.gp     = new Chart(document.getElementById('chartGP'),     chartCfg(monthlyRaw.gp_sap,     monthlyRaw.gp_ops,     'Gross Profit'));
+  charts.gpm    = new Chart(document.getElementById('chartGPM'),    chartCfg(monthlyRaw.gpm_sap,    monthlyRaw.gpm_ops,    'GPM','%'));
+
+  // Overview chart
+  const gap_pend = monthlyRaw.pend_sap.map((v,i)=>+(v-monthlyRaw.pend_ops[i]).toFixed(2));
+  charts.overview = new Chart(document.getElementById('chartOverview'), {
+    type:'bar',
+    data: {
+      labels: months,
+      datasets: [
+        { label:'SAP', data: monthlyRaw.pend_sap, backgroundColor:'rgba(79,142,247,0.7)', borderColor:'#4f8ef7', borderWidth:1.5, borderRadius:5, yAxisID:'y' },
+        { label:'OPS', data: monthlyRaw.pend_ops, backgroundColor:'rgba(247,162,79,0.7)', borderColor:'#f7a24f', borderWidth:1.5, borderRadius:5, yAxisID:'y' },
+        { label:'GAP', type:'line', data: gap_pend, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.15)', borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#ef4444', tension:.3, yAxisID:'y2', fill:true },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#94a3b8'}},
+        y:{grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#94a3b8',callback:v=>v+' M'}, position:'left'},
+        y2:{grid:{display:false}, ticks:{color:'#ef4444',callback:v=>v+' M'}, position:'right'}
+      }
+    }
+  });
+}
+
+let currentOverview = 'pend';
+function switchOverview(key, btn) {
+  currentOverview = key;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateCharts();
+}
+
+function updateCharts() {
+  // For filtered single layanan, we can't easily recompute monthly — show aggregate label only
+  // For simplicity, always show aggregate monthly data (filter affects KPI+table only)
+  const sap = monthlyRaw[currentOverview+'_sap'];
+  const ops = monthlyRaw[currentOverview+'_ops'];
+  const gap = sap.map((v,i)=>+(v-ops[i]).toFixed(2));
+  charts.overview.data.datasets[0].data = sap;
+  charts.overview.data.datasets[1].data = ops;
+  charts.overview.data.datasets[2].data = gap;
+  const isGPM = currentOverview === 'gpm';
+  charts.overview.options.scales.y.ticks.callback = v => v + (isGPM ? '%' : ' M');
+  charts.overview.options.scales.y2.ticks.callback = v => v + (isGPM ? ' pp' : ' M');
+  charts.overview.update();
+}
+
+// ===================== TABLE =====================
+let sortCol = 'layanan', sortDir = 1;
+
+function sortTable(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted');
+    if (th.dataset.col === col) th.classList.add('sorted');
+  });
+  renderTable();
+}
+
+function renderTable() {
+  const q = document.getElementById('tableSearch').value.toLowerCase();
+  let rows = filteredData.filter(r => r.layanan.toLowerCase().includes(q));
+  rows.sort((a,b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+    return sortDir * (va - vb);
+  });
+
+  const gpmBadge = g => {
+    if (Math.abs(g) < 0.5) return `<span class="badge badge-gray">${g.toFixed(2)}%</span>`;
+    if (g > 0) return `<span class="badge badge-green">+${g.toFixed(2)}%</span>`;
+    return `<span class="badge badge-red">${g.toFixed(2)}%</span>`;
+  };
+
+  const numFmt = (v, prefix='Rp ') => {
+    if (v === 0) return '<span class="num-neu">–</span>';
+    const cls = v < 0 ? 'num-neg' : 'num-pos';
+    return `<span class="${cls}">${v<0?'('+prefix+fmt(Math.abs(v))+')':prefix+fmt(v)}</span>`;
+  };
+
+  document.getElementById('tableBody').innerHTML = rows.map(r => `
+    <tr>
+      <td title="${r.layanan}">${r.layanan}</td>
+      <td>${numFmt(r.pend_sap)}</td>
+      <td>${numFmt(r.pend_ops)}</td>
+      <td>${numFmt(r.pend_gap)}</td>
+      <td>${numFmt(r.direct_sap)}</td>
+      <td>${numFmt(r.direct_ops)}</td>
+      <td>${numFmt(r.gp_sap)}</td>
+      <td>${numFmt(r.gp_ops)}</td>
+      <td><span class="num-neu">${r.gpm_sap.toFixed(2)}%</span></td>
+      <td><span class="num-neu">${r.gpm_ops.toFixed(2)}%</span></td>
+      <td>${gpmBadge(r.gpm_gap)}</td>
+    </tr>`).join('');
+}
+
+// ===================== INIT =====================
+initFilter();
+updateKPI();
+initCharts();
+renderTable();
+</script>
+</body>
+</html>
